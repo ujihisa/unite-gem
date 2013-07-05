@@ -8,13 +8,29 @@ let s:unite_source = {
       \ 'required_pattern_length': 1,
       \ }
 
+let s:V = vital#of('vital') " TODO
+let s:F = s:V.import('System.Filepath')
+let s:S = s:V.import('Data.String')
+let s:C = s:V.import('System.Cache')
+let s:_helper_path = printf(
+      \ '%s%sgem.rb',
+      \ expand('<sfile>:p:h'),
+      \ s:F.separator())
+let s:_cache_path = s:C.getfilename('unite-gem', 'gems')
+
 function! s:unite_source.gather_candidates(args, context)
+  if !filereadable(s:_cache_path)
+    call unite#util#system(
+          \ printf('gem search > %s', s:_cache_path))
+  endif
+  let cmd = printf(
+        \     'ruby %s %s %s',
+        \     s:_helper_path,
+        \     s:_cache_path,
+        \     a:context.input)
+  let result = s:S.chomp(unite#util#system(cmd))
   return map(
-        \ split(
-        \   unite#util#system(printf(
-        \     'gem search %s -r',
-        \     a:context.input)),
-        \   "\n"),
+        \ eval(result),
         \ '{
         \ "word": v:val,
         \ "source": "gem",
